@@ -99,6 +99,11 @@ int main() {
     } while (count < 5);
 
 
+    int day = 4;
+    if (day == 6) {
+    } else if (day == 7) {
+    } else {
+    }
 }
 
 void print_point(Point2D p) {

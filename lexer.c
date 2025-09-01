@@ -382,29 +382,29 @@ struct yy_trans_info
 	};
 static const flex_int16_t yy_accept[207] =
     {   0,
-        0,    0,    0,    0,   86,   84,   83,   83,   45,   84,
+        0,    0,    0,    0,   86,   84,   82,   82,   45,   84,
        56,   46,   84,   72,   73,   54,   52,   76,   53,   79,
-       55,   70,   81,   71,   40,   59,   39,   80,   66,   77,
-       78,   48,   66,   66,   66,   66,   66,   66,   66,   66,
-       66,   66,   66,   66,   66,   66,   74,   47,   75,   49,
-       82,    4,    5,    4,   83,   38,    0,   68,   64,   43,
+       55,   70,   66,   71,   40,   59,   39,   80,   83,   77,
+       78,   48,   83,   83,   83,   83,   83,   83,   83,   83,
+       83,   83,   83,   83,   83,   83,   74,   47,   75,   49,
+       81,    4,    5,    4,   82,   38,    0,   68,   64,   43,
         0,   62,   57,   60,   58,   61,   65,    2,    1,   63,
-        0,   70,   50,   42,   37,   41,   51,   66,   66,   66,
-       66,   66,   66,   13,   66,   66,   66,   66,   66,   66,
-       10,   66,   66,   66,   66,   66,   66,   66,   66,   66,
+        0,   70,   50,   42,   37,   41,   51,   83,   83,   83,
+       83,   83,   83,   13,   83,   83,   83,   83,   83,   83,
+       10,   83,   83,   83,   83,   83,   83,   83,   83,   83,
 
-       66,   66,   44,   82,    3,   69,    1,   67,   66,   66,
-       66,   66,   66,   66,   66,   66,   66,   66,   14,   66,
-       66,   35,   66,   66,   66,   66,   66,   66,   66,   66,
-       66,   66,   66,   66,   66,   66,   66,    7,   20,   66,
-       66,   66,   66,   11,   19,   66,   66,   16,   66,   25,
-       66,   66,   66,   66,   66,   66,   66,   66,   66,   66,
-       23,   66,   66,    9,   30,   66,   66,   66,   66,   21,
-       66,   66,   24,   66,   66,   66,   66,   66,   66,   18,
-       66,   66,   12,   66,   66,   22,   32,   34,   36,   26,
-       29,   31,   17,    6,   66,   66,   66,   66,    8,   28,
+       83,   83,   44,   81,    3,   69,    1,   67,   83,   83,
+       83,   83,   83,   83,   83,   83,   83,   83,   14,   83,
+       83,   35,   83,   83,   83,   83,   83,   83,   83,   83,
+       83,   83,   83,   83,   83,   83,   83,    7,   20,   83,
+       83,   83,   83,   11,   19,   83,   83,   16,   83,   25,
+       83,   83,   83,   83,   83,   83,   83,   83,   83,   83,
+       23,   83,   83,    9,   30,   83,   83,   83,   83,   21,
+       83,   83,   24,   83,   83,   83,   83,   83,   83,   18,
+       83,   83,   12,   83,   83,   22,   32,   34,   36,   26,
+       29,   31,   17,    6,   83,   83,   83,   83,    8,   28,
 
-       66,   66,   15,   27,   33,    0
+       83,   83,   15,   27,   33,    0
     } ;
 
 static const YY_CHAR yy_ec[256] =
@@ -586,7 +586,7 @@ static const flex_int32_t yy_rule_can_match_eol[86] =
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
     0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 1, 0, 0,     };
+    0, 0, 1, 0, 0, 0,     };
 
 static yy_state_type yy_last_accepting_state;
 static char *yy_last_accepting_cpos;
@@ -1231,7 +1231,95 @@ YY_RULE_SETUP
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
+#line 81 "lexer.l"
+{ return T_COLON; }
+	YY_BREAK
+case 67:
+YY_RULE_SETUP
 #line 82 "lexer.l"
+{ yylval.string_value = strdup(yytext); return T_FLOAT_LITERAL; }
+	YY_BREAK
+case 68:
+/* rule 68 can match eol */
+YY_RULE_SETUP
+#line 83 "lexer.l"
+{ yylval.string_value = strdup(yytext); return T_STRING_LITERAL; }
+	YY_BREAK
+case 69:
+/* rule 69 can match eol */
+YY_RULE_SETUP
+#line 84 "lexer.l"
+{ yylval.string_value = strdup(yytext); return T_CHAR_LITERAL; }
+	YY_BREAK
+case 70:
+YY_RULE_SETUP
+#line 85 "lexer.l"
+{ yylval.integer_value = atoi(yytext); return T_INTEGER; }
+	YY_BREAK
+case 71:
+YY_RULE_SETUP
+#line 86 "lexer.l"
+{ return T_SEMICOLON; }
+	YY_BREAK
+case 72:
+YY_RULE_SETUP
+#line 87 "lexer.l"
+{ return T_LPAREN; }
+	YY_BREAK
+case 73:
+YY_RULE_SETUP
+#line 88 "lexer.l"
+{ return T_RPAREN; }
+	YY_BREAK
+case 74:
+YY_RULE_SETUP
+#line 89 "lexer.l"
+{ return T_LBRACE; }
+	YY_BREAK
+case 75:
+YY_RULE_SETUP
+#line 90 "lexer.l"
+{ return T_RBRACE; }
+	YY_BREAK
+case 76:
+YY_RULE_SETUP
+#line 91 "lexer.l"
+{ return T_COMMA; }
+	YY_BREAK
+case 77:
+YY_RULE_SETUP
+#line 92 "lexer.l"
+{ return T_LBRACKET; }
+	YY_BREAK
+case 78:
+YY_RULE_SETUP
+#line 93 "lexer.l"
+{ return T_RBRACKET; }
+	YY_BREAK
+case 79:
+YY_RULE_SETUP
+#line 94 "lexer.l"
+{ return T_DOT; }
+	YY_BREAK
+case 80:
+YY_RULE_SETUP
+#line 95 "lexer.l"
+{ return T_QUESTION; }
+	YY_BREAK
+case 81:
+YY_RULE_SETUP
+#line 96 "lexer.l"
+; /* ignore preprocessor directives */
+	YY_BREAK
+case 82:
+/* rule 82 can match eol */
+YY_RULE_SETUP
+#line 97 "lexer.l"
+; /* ignore whitespace */
+	YY_BREAK
+case 83:
+YY_RULE_SETUP
+#line 98 "lexer.l"
 {
     if (is_typedef_name(yytext)) {
         yylval.string_value = strdup(yytext);
@@ -1241,102 +1329,14 @@ YY_RULE_SETUP
     return T_IDENTIFIER;
 }
 	YY_BREAK
-case 67:
-YY_RULE_SETUP
-#line 90 "lexer.l"
-{ yylval.string_value = strdup(yytext); return T_FLOAT_LITERAL; }
-	YY_BREAK
-case 68:
-/* rule 68 can match eol */
-YY_RULE_SETUP
-#line 91 "lexer.l"
-{ yylval.string_value = strdup(yytext); return T_STRING_LITERAL; }
-	YY_BREAK
-case 69:
-/* rule 69 can match eol */
-YY_RULE_SETUP
-#line 92 "lexer.l"
-{ yylval.string_value = strdup(yytext); return T_CHAR_LITERAL; }
-	YY_BREAK
-case 70:
-YY_RULE_SETUP
-#line 93 "lexer.l"
-{ yylval.integer_value = atoi(yytext); return T_INTEGER; }
-	YY_BREAK
-case 71:
-YY_RULE_SETUP
-#line 94 "lexer.l"
-{ return T_SEMICOLON; }
-	YY_BREAK
-case 72:
-YY_RULE_SETUP
-#line 95 "lexer.l"
-{ return T_LPAREN; }
-	YY_BREAK
-case 73:
-YY_RULE_SETUP
-#line 96 "lexer.l"
-{ return T_RPAREN; }
-	YY_BREAK
-case 74:
-YY_RULE_SETUP
-#line 97 "lexer.l"
-{ return T_LBRACE; }
-	YY_BREAK
-case 75:
-YY_RULE_SETUP
-#line 98 "lexer.l"
-{ return T_RBRACE; }
-	YY_BREAK
-case 76:
-YY_RULE_SETUP
-#line 99 "lexer.l"
-{ return T_COMMA; }
-	YY_BREAK
-case 77:
-YY_RULE_SETUP
-#line 100 "lexer.l"
-{ return T_LBRACKET; }
-	YY_BREAK
-case 78:
-YY_RULE_SETUP
-#line 101 "lexer.l"
-{ return T_RBRACKET; }
-	YY_BREAK
-case 79:
-YY_RULE_SETUP
-#line 102 "lexer.l"
-{ return T_DOT; }
-	YY_BREAK
-case 80:
-YY_RULE_SETUP
-#line 103 "lexer.l"
-{ return T_QUESTION; }
-	YY_BREAK
-case 81:
-YY_RULE_SETUP
-#line 104 "lexer.l"
-{ return T_COLON; }
-	YY_BREAK
-case 82:
-YY_RULE_SETUP
-#line 105 "lexer.l"
-; /* ignore preprocessor directives */
-	YY_BREAK
-case 83:
-/* rule 83 can match eol */
-YY_RULE_SETUP
-#line 106 "lexer.l"
-; /* ignore whitespace */
-	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 107 "lexer.l"
+#line 106 "lexer.l"
 { /* ignore other characters */ }
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 109 "lexer.l"
+#line 108 "lexer.l"
 ECHO;
 	YY_BREAK
 #line 1343 "lexer.c"
@@ -2359,7 +2359,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 109 "lexer.l"
+#line 108 "lexer.l"
 
 
 int yywrap(void) {

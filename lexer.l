@@ -78,15 +78,7 @@ int yylineno;
 "/="        { return T_DIV_ASSIGN; }
 "%="        { return T_MOD_ASSIGN; }
 "->"        { return T_ARROW; }
-
-[a-zA-Z_][a-zA-Z0-9_]* {
-    if (is_typedef_name(yytext)) {
-        yylval.string_value = strdup(yytext);
-        return T_TYPENAME;
-    }
-    yylval.string_value = strdup(yytext);
-    return T_IDENTIFIER;
-}
+":"         { return T_COLON; }
 [0-9]+\.[0-9]+ { yylval.string_value = strdup(yytext); return T_FLOAT_LITERAL; }
 \"[^"]*\"  { yylval.string_value = strdup(yytext); return T_STRING_LITERAL; }
 '[^']'      { yylval.string_value = strdup(yytext); return T_CHAR_LITERAL; }
@@ -101,9 +93,16 @@ int yylineno;
 "]"         { return T_RBRACKET; }
 "."         { return T_DOT; }
 "?"         { return T_QUESTION; }
-":"         { return T_COLON; }
 ^#.*        ; /* ignore preprocessor directives */
 [ \t\n]+    ; /* ignore whitespace */
+[a-zA-Z_][a-zA-Z0-9_]* {
+    if (is_typedef_name(yytext)) {
+        yylval.string_value = strdup(yytext);
+        return T_TYPENAME;
+    }
+    yylval.string_value = strdup(yytext);
+    return T_IDENTIFIER;
+}
 .           { /* ignore other characters */ }
 
 %%
