@@ -15,7 +15,8 @@ typedef enum {
     TYPE_SHORT,
     TYPE_LONG,
     TYPE_TYPEDEF,
-    TYPE_FUNCTION
+    TYPE_FUNCTION,
+    TYPE_BOOL
 } BaseType;
 
 typedef struct Type {

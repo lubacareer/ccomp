@@ -6,10 +6,17 @@
 #include "symtab.h"
 
 extern int yylex(void);
+extern SymbolTable *symbol_table;
 void yyerror(const char *s);
 extern char *yytext;
 extern int yylineno;
 ASTNode *root;
+int main_function_defined = 0;
+
+void check_function_call(char *name, ASTNode *args);
+int compare_types(Type *a, Type *b);
+Symbol *get_current_function();
+DataType get_expression_type(ASTNode *expr);
 %}
 
 %union {
@@ -22,7 +29,7 @@ ASTNode *root;
 %token <string_value> T_IDENTIFIER T_TYPENAME
 %token <integer_value> T_INTEGER
 %token <string_value> T_FLOAT_LITERAL T_CHAR_LITERAL T_STRING_LITERAL
-%token T_INT T_RETURN T_IF T_ELSE T_WHILE T_FOR T_SWITCH T_CASE T_DEFAULT T_BREAK T_DO T_CONTINUE T_GOTO T_STRUCT T_UNION T_ENUM T_CHAR T_FLOAT T_DOUBLE T_VOID T_SHORT T_LONG T_SIGNED T_UNSIGNED T_TYPEDEF T_SIZEOF T_CONST T_STATIC T_EXTERN T_VOLATILE T_INLINE
+%token T_INT T_RETURN T_IF T_ELSE T_WHILE T_FOR T_SWITCH T_CASE T_DEFAULT T_BREAK T_DO T_CONTINUE T_GOTO T_STRUCT T_UNION T_ENUM T_CHAR T_FLOAT T_DOUBLE T_VOID T_SHORT T_LONG T_SIGNED T_UNSIGNED T_TYPEDEF T_SIZEOF T_CONST T_STATIC T_EXTERN T_VOLATILE T_INLINE T_BOOL
 %token T_SEMICOLON T_LPAREN T_RPAREN T_LBRACE T_RBRACE T_COMMA
 %token T_LBRACKET T_RBRACKET T_DOT T_ARROW
 %token T_INC T_DEC
@@ -65,7 +72,12 @@ ASTNode *root;
 %%
 
 program:
-    translation_unit { root = $1; }
+    translation_unit {
+        if (!main_function_defined) {
+            yyerror("main function not defined");
+        }
+        root = $1;
+    }
     ;
 
 translation_unit:
@@ -79,15 +91,41 @@ external_declaration:
     ;
 
 function_definition:
-    declaration_specifiers declarator compound_statement { $$ = create_function_definition_node($1, $2, NULL, $3); }
+    declaration_specifiers declarator compound_statement {
+        if (strcmp($2->var_decl.name, "main") == 0) {
+            if (main_function_defined) {
+                yyerror("main function already defined");
+            }
+            main_function_defined = 1;
+            Type *func_type = $2->var_decl.var_type;
+            while(func_type && func_type->base != TYPE_FUNCTION) func_type = func_type->ptr_to;
+            if (func_type && func_type->members && func_type->members->param_list.count > 0) {
+                yyerror("main function cannot have arguments");
+            }
+        }
+        Type *func_type = $2->var_decl.var_type;
+        while(func_type && func_type->base != TYPE_FUNCTION) func_type = func_type->ptr_to;
+        if (!symtab_insert(symbol_table, $2->var_decl.name, SYMBOL_FUNCTION, DATA_TYPE_INT, $1->base, func_type ? func_type->members : NULL)) {
+            yyerror("Symbol already defined in current scope");
+        }
+        $$ = create_function_definition_node($1, $2, NULL, $3);
+    }
     ;
 
 declaration:
-    declaration_specifiers init_declarator_list T_SEMICOLON { $$ = create_decl_list_node($1, $2); }
+    declaration_specifiers init_declarator_list T_SEMICOLON {
+        for (int i = 0; i < $2->statement_list.count; i++) {
+            ASTNode *decl = $2->statement_list.statements[i];
+            if (!symtab_insert(symbol_table, decl->var_decl.name, SYMBOL_VARIABLE, $1->base, DATA_TYPE_VOID, NULL)) {
+                yyerror("Symbol already defined in current scope");
+            }
+        }
+        $$ = create_decl_list_node($1, $2);
+    }
     | declaration_specifiers T_SEMICOLON { $$ = create_type_decl_node($1); }
     | T_TYPEDEF declaration_specifiers init_declarator_list T_SEMICOLON {
         for (int i = 0; i < $3->statement_list.count; i++) {
-            add_typedef_name($3->statement_list.statements[i]->var_decl.name);
+            add_typedef_name(symbol_table, $3->statement_list.statements[i]->var_decl.name);
         }
         $$ = create_typedef_node(NULL, $2);
     }
@@ -156,6 +194,9 @@ param_list:
 
 parameter_declaration:
     declaration_specifiers declarator {
+        if (!symtab_insert(symbol_table, $2->var_decl.name, SYMBOL_VARIABLE, $1->base, DATA_TYPE_VOID, NULL)) {
+            yyerror("Symbol already defined in current scope");
+        }
         $$ = $2;
         if ($$->var_decl.var_type) {
             Type *t = $$->var_decl.var_type;
@@ -202,8 +243,8 @@ statement:
     ;
 
 compound_statement:
-    T_LBRACE T_RBRACE { $$ = create_statement_list_node(); }
-    | T_LBRACE block_item_list T_RBRACE { $$ = $2; }
+    T_LBRACE { symtab_enter_scope(symbol_table); } T_RBRACE { $$ = create_statement_list_node(); symtab_exit_scope(symbol_table); }
+    | T_LBRACE { symtab_enter_scope(symbol_table); } block_item_list T_RBRACE { $$ = $3; symtab_exit_scope(symbol_table); }
     ;
 
 block_item_list:
@@ -224,13 +265,28 @@ labeled_statement:
     ;
 
 selection_statement:
-    T_IF T_LPAREN expression T_RPAREN statement %prec T_IFX { $$ = create_if_node($3, $5, NULL); }
-    | T_IF T_LPAREN expression T_RPAREN statement T_ELSE statement { $$ = create_if_node($3, $5, $7); }
+    T_IF T_LPAREN expression T_RPAREN statement %prec T_IFX {
+        if (get_expression_type($3) != DATA_TYPE_INT) {
+            yyerror("if condition must be an integer type");
+        }
+        $$ = create_if_node($3, $5, NULL);
+    }
+    | T_IF T_LPAREN expression T_RPAREN statement T_ELSE statement {
+        if (get_expression_type($3) != DATA_TYPE_INT) {
+            yyerror("if condition must be an integer type");
+        }
+        $$ = create_if_node($3, $5, $7);
+    }
     | T_SWITCH T_LPAREN expression T_RPAREN statement { $$ = create_switch_node($3, $5); }
     ;
 
 iteration_statement:
-    T_WHILE T_LPAREN expression T_RPAREN statement { $$ = create_while_node($3, $5); }
+    T_WHILE T_LPAREN expression T_RPAREN statement {
+        if (get_expression_type($3) != DATA_TYPE_INT) {
+            yyerror("while condition must be an integer type");
+        }
+        $$ = create_while_node($3, $5);
+    }
     | T_DO statement T_WHILE T_LPAREN expression T_RPAREN T_SEMICOLON { $$ = create_do_while_node($2, $5); }
     | T_FOR T_LPAREN expression T_SEMICOLON expression T_SEMICOLON T_RPAREN statement { $$ = create_for_node($3, $5, NULL, $8); }
     | T_FOR T_LPAREN expression T_SEMICOLON expression T_SEMICOLON expression T_RPAREN statement { $$ = create_for_node($3, $5, $7, $9); }
@@ -242,8 +298,23 @@ jump_statement:
     T_GOTO T_IDENTIFIER T_SEMICOLON { $$ = create_goto_node($2); }
     | T_CONTINUE T_SEMICOLON { $$ = create_continue_node(); }
     | T_BREAK T_SEMICOLON { $$ = create_break_node(); }
-    | T_RETURN T_SEMICOLON { $$ = create_return_node(NULL); }
-    | T_RETURN expression T_SEMICOLON { $$ = create_return_node($2); }
+    | T_RETURN T_SEMICOLON {
+        Symbol *func = get_current_function();
+        if (func && func->return_type != DATA_TYPE_VOID) {
+            yyerror("Non-void function must return a value");
+        }
+        $$ = create_return_node(NULL);
+    }
+    | T_RETURN expression T_SEMICOLON {
+        Symbol *func = get_current_function();
+        if (func) {
+            DataType expr_type = get_expression_type($2);
+            if (expr_type != func->return_type) {
+                yyerror("Incompatible return type");
+            }
+        }
+        $$ = create_return_node($2);
+    }
     ;
 
 expression:
@@ -253,7 +324,14 @@ expression:
 
 assignment_expression:
     conditional_expression { $$ = $1; }
-    | unary_expression T_ASSIGN assignment_expression { $$ = create_assign_node($1, $3); }
+    | unary_expression T_ASSIGN assignment_expression {
+        DataType left_type = get_expression_type($1);
+        DataType right_type = get_expression_type($3);
+        if (left_type != right_type) {
+            yyerror("Incompatible types in assignment");
+        }
+        $$ = create_assign_node($1, $3);
+    }
     | unary_expression T_ADD_ASSIGN assignment_expression { $$ = create_assign_node($1, create_binary_op_node(T_ADD, $1, $3)); }
     | unary_expression T_SUB_ASSIGN assignment_expression { $$ = create_assign_node($1, create_binary_op_node(T_SUB, $1, $3)); }
     | unary_expression T_MUL_ASSIGN assignment_expression { $$ = create_assign_node($1, create_binary_op_node(T_MUL, $1, $3)); }
@@ -268,12 +346,22 @@ conditional_expression:
 
 logical_or_expression:
     logical_and_expression { $$ = $1; }
-    | logical_or_expression T_LOGICAL_OR logical_and_expression { $$ = create_binary_op_node(T_LOGICAL_OR, $1, $3); }
+    | logical_or_expression T_LOGICAL_OR logical_and_expression {
+        if (get_expression_type($1) != DATA_TYPE_BOOL || get_expression_type($3) != DATA_TYPE_BOOL) {
+            yyerror("Logical operators require boolean operands");
+        }
+        $$ = create_binary_op_node(T_LOGICAL_OR, $1, $3);
+    }
     ;
 
 logical_and_expression:
     inclusive_or_expression { $$ = $1; }
-    | logical_and_expression T_LOGICAL_AND inclusive_or_expression { $$ = create_binary_op_node(T_LOGICAL_AND, $1, $3); }
+    | logical_and_expression T_LOGICAL_AND inclusive_or_expression {
+        if (get_expression_type($1) != DATA_TYPE_BOOL || get_expression_type($3) != DATA_TYPE_BOOL) {
+            yyerror("Logical operators require boolean operands");
+        }
+        $$ = create_binary_op_node(T_LOGICAL_AND, $1, $3);
+    }
     ;
 
 inclusive_or_expression:
@@ -293,16 +381,58 @@ and_expression:
 
 equality_expression:
     relational_expression { $$ = $1; }
-    | equality_expression T_EQ relational_expression { $$ = create_binary_op_node(T_EQ, $1, $3); }
-    | equality_expression T_NE relational_expression { $$ = create_binary_op_node(T_NE, $1, $3); }
+    | equality_expression T_EQ relational_expression {
+        DataType left_type = get_expression_type($1);
+        DataType right_type = get_expression_type($3);
+        if (left_type != right_type) {
+            yyerror("Equality operators require operands of the same type");
+        }
+        $$ = create_binary_op_node(T_EQ, $1, $3);
+    }
+    | equality_expression T_NE relational_expression {
+        DataType left_type = get_expression_type($1);
+        DataType right_type = get_expression_type($3);
+        if (left_type != right_type) {
+            yyerror("Equality operators require operands of the same type");
+        }
+        $$ = create_binary_op_node(T_NE, $1, $3);
+    }
     ;
 
 relational_expression:
     shift_expression { $$ = $1; }
-    | relational_expression T_LT shift_expression { $$ = create_binary_op_node(T_LT, $1, $3); }
-    | relational_expression T_GT shift_expression { $$ = create_binary_op_node(T_GT, $1, $3); }
-    | relational_expression T_LE shift_expression { $$ = create_binary_op_node(T_LE, $1, $3); }
-    | relational_expression T_GE shift_expression { $$ = create_binary_op_node(T_GE, $1, $3); }
+    | relational_expression T_LT shift_expression {
+        DataType left_type = get_expression_type($1);
+        DataType right_type = get_expression_type($3);
+        if ((left_type != DATA_TYPE_INT && left_type != DATA_TYPE_FLOAT) || (right_type != DATA_TYPE_INT && right_type != DATA_TYPE_FLOAT)) {
+            yyerror("Relational operators require integer or float operands");
+        }
+        $$ = create_binary_op_node(T_LT, $1, $3);
+    }
+    | relational_expression T_GT shift_expression {
+        DataType left_type = get_expression_type($1);
+        DataType right_type = get_expression_type($3);
+        if ((left_type != DATA_TYPE_INT && left_type != DATA_TYPE_FLOAT) || (right_type != DATA_TYPE_INT && right_type != DATA_TYPE_FLOAT)) {
+            yyerror("Relational operators require integer or float operands");
+        }
+        $$ = create_binary_op_node(T_GT, $1, $3);
+    }
+    | relational_expression T_LE shift_expression {
+        DataType left_type = get_expression_type($1);
+        DataType right_type = get_expression_type($3);
+        if ((left_type != DATA_TYPE_INT && left_type != DATA_TYPE_FLOAT) || (right_type != DATA_TYPE_INT && right_type != DATA_TYPE_FLOAT)) {
+            yyerror("Relational operators require integer or float operands");
+        }
+        $$ = create_binary_op_node(T_LE, $1, $3);
+    }
+    | relational_expression T_GE shift_expression {
+        DataType left_type = get_expression_type($1);
+        DataType right_type = get_expression_type($3);
+        if ((left_type != DATA_TYPE_INT && left_type != DATA_TYPE_FLOAT) || (right_type != DATA_TYPE_INT && right_type != DATA_TYPE_FLOAT)) {
+            yyerror("Relational operators require integer or float operands");
+        }
+        $$ = create_binary_op_node(T_GE, $1, $3);
+    }
     ;
 
 shift_expression:
@@ -334,20 +464,46 @@ unary_expression:
     | T_INC unary_expression { $$ = create_unary_op_node(T_INC, $2); }
     | T_DEC unary_expression { $$ = create_unary_op_node(T_DEC, $2); }
     | T_BITWISE_AND cast_expression { $$ = create_unary_op_node(T_BITWISE_AND, $2); }
-    | T_MUL cast_expression { $$ = create_unary_op_node(T_MUL, $2); }
+    | T_MUL cast_expression {
+        if (get_expression_type($2) != DATA_TYPE_POINTER) {
+            yyerror("Dereference operator can only be applied to pointers");
+        }
+        $$ = create_unary_op_node(T_MUL, $2);
+    }
     | T_ADD cast_expression { $$ = $2; }
     | T_SUB cast_expression { $$ = create_unary_op_node(T_SUB, $2); }
     | T_BITWISE_NOT cast_expression { $$ = create_unary_op_node(T_BITWISE_NOT, $2); }
-    | T_LOGICAL_NOT cast_expression { $$ = create_unary_op_node(T_LOGICAL_NOT, $2); }
+    | T_LOGICAL_NOT cast_expression {
+        if (get_expression_type($2) != DATA_TYPE_BOOL) {
+            yyerror("Logical NOT operator can only be applied to booleans");
+        }
+        $$ = create_unary_op_node(T_LOGICAL_NOT, $2);
+    }
     | T_SIZEOF unary_expression { $$ = create_sizeof_node(NULL); }
     | T_SIZEOF T_LPAREN type_name T_RPAREN { $$ = create_sizeof_node($3); }
     ;
 
 postfix_expression:
     primary_expression { $$ = $1; }
-    | postfix_expression T_LBRACKET expression T_RBRACKET { $$ = create_array_access_node($1, $3); }
-    | postfix_expression T_LPAREN T_RPAREN { $$ = create_func_call_node(NULL, NULL); }
-    | postfix_expression T_LPAREN argument_expression_list T_RPAREN { $$ = create_func_call_node(NULL, $3); }
+    | postfix_expression T_LBRACKET expression T_RBRACKET {
+        DataType array_type = get_expression_type($1);
+        if (array_type != DATA_TYPE_ARRAY) {
+            yyerror("[] operator can only be used with arrays");
+        }
+        DataType index_type = get_expression_type($3);
+        if (index_type != DATA_TYPE_INT) {
+            yyerror("Array index must be an integer");
+        }
+        $$ = create_array_access_node($1, $3);
+    }
+    | postfix_expression T_LPAREN T_RPAREN {
+        check_function_call($1->variable.name, NULL);
+        $$ = create_func_call_node($1->variable.name, NULL);
+    }
+    | postfix_expression T_LPAREN argument_expression_list T_RPAREN {
+        check_function_call($1->variable.name, $3);
+        $$ = create_func_call_node($1->variable.name, $3);
+    }
     | postfix_expression T_DOT T_IDENTIFIER { $$ = create_member_access_node($1, $3); }
     | postfix_expression T_ARROW T_IDENTIFIER { $$ = create_member_access_node($1, $3); }
     | postfix_expression T_INC { $$ = create_unary_op_node(T_INC, $1); }
@@ -355,7 +511,12 @@ postfix_expression:
     ;
 
 primary_expression:
-    T_IDENTIFIER { $$ = create_variable_node($1); }
+    T_IDENTIFIER {
+        if (symtab_lookup(symbol_table, $1) == NULL) {
+            yyerror("Symbol not defined");
+        }
+        $$ = create_variable_node($1);
+    }
     | T_INTEGER { $$ = create_integer_node($1); }
     | T_FLOAT_LITERAL { $$ = create_float_node($1); }
     | T_CHAR_LITERAL { $$ = create_char_node($1); }
@@ -380,7 +541,8 @@ initializer_list:
     ;
 
 type_specifier:
-    T_VOID { $$ = create_type(TYPE_VOID); }
+    T_BOOL { $$ = create_type(TYPE_BOOL); }
+    | T_VOID { $$ = create_type(TYPE_VOID); }
     | T_CHAR { $$ = create_type(TYPE_CHAR); }
     | T_SHORT { $$ = create_type(TYPE_SHORT); }
     | T_INT { $$ = create_type(TYPE_INT); }
@@ -441,4 +603,109 @@ declarator_list:
 
 void yyerror(const char *s) {
     fprintf(stderr, "Parse error on line %d: %s near '%s'\n", yylineno, s, yytext);
+}
+
+void check_function_call(char *name, ASTNode *args) {
+    Symbol *s = symtab_lookup(symbol_table, name);
+    if (s == NULL) {
+        yyerror("Function not defined");
+        return;
+    }
+    if (s->type != SYMBOL_FUNCTION) {
+        yyerror("Identifier is not a function");
+        return;
+    }
+
+    int num_args = args ? args->arg_list.count : 0;
+    int num_params = s->params ? s->params->param_list.count : 0;
+
+    if (num_args != num_params) {
+        yyerror("Incorrect number of arguments in function call");
+        return;
+    }
+
+    for (int i = 0; i < num_args; i++) {
+        // This is a simplified type check. A real implementation would need to
+        // traverse the expression tree to determine the type of the argument.
+        // Here, we're just assuming that the argument is a variable and
+        // looking up its type in the symbol table.
+        ASTNode *arg = args->arg_list.args[i];
+        if (arg->type == NODE_TYPE_VARIABLE) {
+            Symbol *arg_s = symtab_lookup(symbol_table, arg->variable.name);
+            if (arg_s) {
+                Type *param_type = s->params->param_list.params[i]->var_decl.var_type;
+                Type arg_type = { .base = arg_s->data_type };
+                if (!compare_types(&arg_type, param_type)) {
+                    yyerror("Incompatible argument type in function call");
+                }
+            }
+        }
+    }
+}
+
+int compare_types(Type *a, Type *b) {
+    if (a == NULL || b == NULL) {
+        return 0;
+    }
+    if (a->base != b->base) {
+        return 0;
+    }
+    if (a->base == TYPE_POINTER) {
+        return compare_types(a->ptr_to, b->ptr_to);
+    }
+    return 1;
+}
+
+Symbol *get_current_function() {
+    Scope *scope = symbol_table->current_scope;
+    while (scope) {
+        for (int i = 0; i < TABLE_SIZE; i++) {
+            Symbol *s = scope->table[i];
+            while (s) {
+                if (s->type == SYMBOL_FUNCTION) {
+                    return s;
+                }
+                s = s->next;
+            }
+        }
+        scope = scope->parent;
+    }
+    return NULL;
+}
+
+DataType get_expression_type(ASTNode *expr) {
+    if (!expr) {
+        return DATA_TYPE_VOID;
+    }
+    switch (expr->type) {
+        case NODE_TYPE_VARIABLE: {
+            Symbol *s = symtab_lookup(symbol_table, expr->variable.name);
+            if (s) {
+                if (s->type == SYMBOL_FUNCTION) return s->return_type;
+                return s->data_type;
+            }
+            return DATA_TYPE_VOID;
+        }
+        case NODE_TYPE_INTEGER:
+            return DATA_TYPE_INT;
+        case NODE_TYPE_CHAR:
+            return DATA_TYPE_CHAR;
+        case NODE_TYPE_FLOAT:
+            return DATA_TYPE_FLOAT;
+        case NODE_TYPE_BINARY_OP:
+            // This is a simplification. A real implementation would need to
+            // consider the types of the operands and the operator.
+            return get_expression_type(expr->binary_op.left);
+        case NODE_TYPE_FUNC_CALL: {
+            Symbol *s = symtab_lookup(symbol_table, expr->func_call.name);
+            return s ? s->return_type : DATA_TYPE_VOID;
+        }
+        case NODE_TYPE_ARRAY_ACCESS: {
+            // This is a simplification. A real implementation would need to
+            // determine the element type of the array.
+            return DATA_TYPE_CHAR; // Assuming array elements are chars for now
+        }
+        default:
+            return DATA_TYPE_VOID;
+    }
 }

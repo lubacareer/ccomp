@@ -449,6 +449,7 @@ void print_type(Type *type) {
         case TYPE_DOUBLE: printf("DOUBLE"); break;
         case TYPE_TYPEDEF: printf("TYPEDEF %s", type->name); break;
         case TYPE_FUNCTION: printf("FUNCTION returning "); print_type(type->ptr_to); break;
+        case TYPE_BOOL: printf("BOOL"); break;
     }
 }
 

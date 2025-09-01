@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "parser.h"
 #include "symtab.h"
+extern SymbolTable *symbol_table;
 int yylineno;
 %}
 
@@ -48,6 +49,7 @@ int yylineno;
 "volatile"  { return T_VOLATILE; }
 "inline"    { return T_INLINE; }
 "int"       { return T_INT; }
+"bool"      { return T_BOOL; }
 "return"    { return T_RETURN; }
 "=="        { return T_EQ; }
 "!="        { return T_NE; }
@@ -96,7 +98,7 @@ int yylineno;
 ^#.*        ; /* ignore preprocessor directives */
 [ \t\n]+    ; /* ignore whitespace */
 [a-zA-Z_][a-zA-Z0-9_]* {
-    if (is_typedef_name(yytext)) {
+    if (is_typedef_name(symbol_table, yytext)) {
         yylval.string_value = strdup(yytext);
         return T_TYPENAME;
     }

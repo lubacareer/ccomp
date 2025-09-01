@@ -91,47 +91,48 @@ extern int yydebug;
     T_EXTERN = 292,                /* T_EXTERN  */
     T_VOLATILE = 293,              /* T_VOLATILE  */
     T_INLINE = 294,                /* T_INLINE  */
-    T_SEMICOLON = 295,             /* T_SEMICOLON  */
-    T_LPAREN = 296,                /* T_LPAREN  */
-    T_RPAREN = 297,                /* T_RPAREN  */
-    T_LBRACE = 298,                /* T_LBRACE  */
-    T_RBRACE = 299,                /* T_RBRACE  */
-    T_COMMA = 300,                 /* T_COMMA  */
-    T_LBRACKET = 301,              /* T_LBRACKET  */
-    T_RBRACKET = 302,              /* T_RBRACKET  */
-    T_DOT = 303,                   /* T_DOT  */
-    T_ARROW = 304,                 /* T_ARROW  */
-    T_INC = 305,                   /* T_INC  */
-    T_DEC = 306,                   /* T_DEC  */
-    T_LOGICAL_NOT = 307,           /* T_LOGICAL_NOT  */
-    T_BITWISE_NOT = 308,           /* T_BITWISE_NOT  */
-    T_LOGICAL_AND = 309,           /* T_LOGICAL_AND  */
-    T_LOGICAL_OR = 310,            /* T_LOGICAL_OR  */
-    T_BITWISE_AND = 311,           /* T_BITWISE_AND  */
-    T_BITWISE_OR = 312,            /* T_BITWISE_OR  */
-    T_BITWISE_XOR = 313,           /* T_BITWISE_XOR  */
-    T_LSHIFT = 314,                /* T_LSHIFT  */
-    T_RSHIFT = 315,                /* T_RSHIFT  */
-    T_ASSIGN = 316,                /* T_ASSIGN  */
-    T_ADD_ASSIGN = 317,            /* T_ADD_ASSIGN  */
-    T_SUB_ASSIGN = 318,            /* T_SUB_ASSIGN  */
-    T_MUL_ASSIGN = 319,            /* T_MUL_ASSIGN  */
-    T_DIV_ASSIGN = 320,            /* T_DIV_ASSIGN  */
-    T_MOD_ASSIGN = 321,            /* T_MOD_ASSIGN  */
-    T_EQ = 322,                    /* T_EQ  */
-    T_NE = 323,                    /* T_NE  */
-    T_GT = 324,                    /* T_GT  */
-    T_GE = 325,                    /* T_GE  */
-    T_LT = 326,                    /* T_LT  */
-    T_LE = 327,                    /* T_LE  */
-    T_ADD = 328,                   /* T_ADD  */
-    T_SUB = 329,                   /* T_SUB  */
-    T_MUL = 330,                   /* T_MUL  */
-    T_DIV = 331,                   /* T_DIV  */
-    T_MOD = 332,                   /* T_MOD  */
-    T_QUESTION = 333,              /* T_QUESTION  */
-    T_COLON = 334,                 /* T_COLON  */
-    T_IFX = 335                    /* T_IFX  */
+    T_BOOL = 295,                  /* T_BOOL  */
+    T_SEMICOLON = 296,             /* T_SEMICOLON  */
+    T_LPAREN = 297,                /* T_LPAREN  */
+    T_RPAREN = 298,                /* T_RPAREN  */
+    T_LBRACE = 299,                /* T_LBRACE  */
+    T_RBRACE = 300,                /* T_RBRACE  */
+    T_COMMA = 301,                 /* T_COMMA  */
+    T_LBRACKET = 302,              /* T_LBRACKET  */
+    T_RBRACKET = 303,              /* T_RBRACKET  */
+    T_DOT = 304,                   /* T_DOT  */
+    T_ARROW = 305,                 /* T_ARROW  */
+    T_INC = 306,                   /* T_INC  */
+    T_DEC = 307,                   /* T_DEC  */
+    T_LOGICAL_NOT = 308,           /* T_LOGICAL_NOT  */
+    T_BITWISE_NOT = 309,           /* T_BITWISE_NOT  */
+    T_LOGICAL_AND = 310,           /* T_LOGICAL_AND  */
+    T_LOGICAL_OR = 311,            /* T_LOGICAL_OR  */
+    T_BITWISE_AND = 312,           /* T_BITWISE_AND  */
+    T_BITWISE_OR = 313,            /* T_BITWISE_OR  */
+    T_BITWISE_XOR = 314,           /* T_BITWISE_XOR  */
+    T_LSHIFT = 315,                /* T_LSHIFT  */
+    T_RSHIFT = 316,                /* T_RSHIFT  */
+    T_ASSIGN = 317,                /* T_ASSIGN  */
+    T_ADD_ASSIGN = 318,            /* T_ADD_ASSIGN  */
+    T_SUB_ASSIGN = 319,            /* T_SUB_ASSIGN  */
+    T_MUL_ASSIGN = 320,            /* T_MUL_ASSIGN  */
+    T_DIV_ASSIGN = 321,            /* T_DIV_ASSIGN  */
+    T_MOD_ASSIGN = 322,            /* T_MOD_ASSIGN  */
+    T_EQ = 323,                    /* T_EQ  */
+    T_NE = 324,                    /* T_NE  */
+    T_GT = 325,                    /* T_GT  */
+    T_GE = 326,                    /* T_GE  */
+    T_LT = 327,                    /* T_LT  */
+    T_LE = 328,                    /* T_LE  */
+    T_ADD = 329,                   /* T_ADD  */
+    T_SUB = 330,                   /* T_SUB  */
+    T_MUL = 331,                   /* T_MUL  */
+    T_DIV = 332,                   /* T_DIV  */
+    T_MOD = 333,                   /* T_MOD  */
+    T_QUESTION = 334,              /* T_QUESTION  */
+    T_COLON = 335,                 /* T_COLON  */
+    T_IFX = 336                    /* T_IFX  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -140,14 +141,14 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 15 "parser.y"
+#line 22 "parser.y"
 
     int integer_value;
     char *string_value;
     struct ASTNode *node;
     struct Type *type;
 
-#line 151 "parser.h"
+#line 152 "parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
