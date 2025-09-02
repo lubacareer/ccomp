@@ -31,19 +31,32 @@ parser.c parser.h: parser.y
 	bison -d -Wcounterexamples -o parser.c parser.y
 
 run: ccomp
-	gcc -E tests/test9.c -o tests/test9.i
-	./ccomp tests/test9.i
+	./ccomp tests/test.c a.s
+	gcc -o a.out a.s
+	./a.out
 
 test: ccomp
-	./ccomp tests/test1.c
-	./ccomp tests/test2.c
-	./ccomp tests/test3.c
-	./ccomp tests/test4.c
-	./ccomp tests/test5.c
-	./ccomp tests/test6.c
-	./ccomp tests/test7.c
-	./ccomp tests/test8.c
-	./ccomp tests/test9.c
+	./ccomp tests/test.c a.s
+	gcc -o tests/output/test1.out a.s
+	./ccomp tests/test2.c a.s
+	gcc -o tests/output/test2.out a.s
+	./ccomp tests/test3.c a.s
+	gcc -o tests/output/test3.out a.s
+	./ccomp tests/test4.c a.s
+	gcc -o tests/output/test4.out a.s
+	./ccomp tests/test5.c a.s
+	gcc -o tests/output/test5.out a.s
+	./ccomp tests/test6.c a.s
+	gcc -o tests/output/test6.out a.s
+	./ccomp tests/test7.c a.s
+	gcc -o tests/output/test7.out a.s
+	./ccomp tests/test8.c a.s
+	gcc -o tests/output/test8.out a.s
+	./ccomp tests/test9.c a.s
+	gcc -o tests/output/test9.out a.s
+	./ccomp tests/test10.c a.s
+	gcc -o tests/output/test10.out a.s
 
 clean:
-	rm -f ccomp *.o lexer.c parser.c parser.h tests/*.i
+	rm -f ccomp *.o lexer.c parser.c parser.h tests/*.i a.s *.out tests/output/*.out
+	rm -rf fail_tests tests/output
