@@ -13,39 +13,47 @@ int main(int argc, char **argv) {
     symbol_table = symtab_create();
     char *input_file = NULL;
     char *output_file = "a.s";
-    for (int i = 1; i < argc; i++) {
+    int i;
+
+    for (i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-g") == 0) {
             debug = 1;
-        } else if (strcmp(argv[i], "-o") == 0) {
-            if (i + 1 < argc) {
-                output_file = argv[++i];
-            } else {
-                fprintf(stderr, "Missing filename after -o\n");
-                return 1;
-            }
-        } else {
+        } else if (input_file == NULL) {
             input_file = argv[i];
+        } else if (output_file == NULL) {
+            output_file = argv[i];
+        } else {
+            fprintf(stderr, "Usage: %s [-g] <input file> [output file]\n", argv[0]);
+            return 1;
         }
     }
 
-    if (input_file) {
-        FILE *file = fopen(input_file, "r");
-        if (!file) {
-            perror(input_file);
-            return 1;
-        }
-        extern FILE *yyin;
-        yyin = file;
+    if (input_file == NULL) {
+        fprintf(stderr, "Usage: %s [-g] <input file> [output file]\n", argv[0]);
+        return 1;
     }
+
+    FILE *file = fopen(input_file, "r");
+    if (!file) {
+        perror(input_file);
+        return 1;
+    }
+    extern FILE *yyin;
+    yyin = file;
 
     if (yyparse() == 0) {
         if (debug) {
-            printf("AST:\n");
+            printf("Original AST:\n");
+            print_ast(root, 0);
+        }
+        root = fold_constants(root);
+        if (debug) {
+            printf("\nOptimized AST:\n");
             print_ast(root, 0);
         }
         generate_code(root, output_file);
     }
 
-    symtab_destroy(symbol_table);
+    // symtab_destroy(symbol_table); // Scopes are now owned by the AST
     return 0;
 }
