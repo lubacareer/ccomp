@@ -1,0 +1,321 @@
+Original AST:
+PROGRAM
+  STATEMENT_LIST
+    TYPE_DECL: STRUCT Point
+    TYPE_DECL: UNION Data
+    TYPEDEF: (null)
+INT
+    STATEMENT_LIST
+      VAR_DECL: add of type FUNCTION returning INT
+    STATEMENT_LIST
+      VAR_DECL: print_message of type FUNCTION returning VOID
+    FUNCTION_DEFINITION: main, returns INT
+      STATEMENT_LIST
+        STATEMENT_LIST
+          VAR_DECL: a of type TYPEDEF MyInt =
+            INTEGER: 5
+        STATEMENT_LIST
+          VAR_DECL: b of type INT =
+            INTEGER: 3
+        STATEMENT_LIST
+          VAR_DECL: c of type FLOAT =
+            FLOAT: 2.500000
+        STATEMENT_LIST
+          VAR_DECL: d of type CHAR =
+            CHAR: B
+        STATEMENT_LIST
+          VAR_DECL: result of type INT
+        STATEMENT_LIST
+          VAR_DECL: arr of type ARRAY of 0 INT =
+            INITIALIZER_LIST
+              INTEGER: 10
+              INTEGER: 20
+              INTEGER: 30
+        STATEMENT_LIST
+          VAR_DECL: ptr of type POINTER to INT =
+            UNARY_OP: &
+              VARIABLE: a
+        STATEMENT_LIST
+          VAR_DECL: p1 of type STRUCT Point
+        STATEMENT_LIST
+          VAR_DECL: data of type UNION Data
+        ASSIGN
+          VARIABLE: result
+          BINARY_OP: +
+            VARIABLE: a
+            VARIABLE: b
+        ASSIGN
+          VARIABLE: result
+          BINARY_OP: +
+            VARIABLE: result
+            INTEGER: 1
+        ASSIGN
+          VARIABLE: result
+          BINARY_OP: -
+            VARIABLE: result
+            VARIABLE: b
+        ASSIGN
+          VARIABLE: result
+          BINARY_OP: *
+            VARIABLE: result
+            INTEGER: 2
+        ASSIGN
+          VARIABLE: result
+          BINARY_OP:  /
+            VARIABLE: result
+            INTEGER: 3
+        ASSIGN
+          VARIABLE: result
+          BINARY_OP: %
+            VARIABLE: result
+            INTEGER: 3
+        STATEMENT_LIST
+          VAR_DECL: sum of type INT =
+            BINARY_OP: +
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: diff of type INT =
+            BINARY_OP: -
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: prod of type INT =
+            BINARY_OP: *
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: div_res of type INT =
+            BINARY_OP:  /
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: mod_res of type INT =
+            BINARY_OP: %
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: neg_a of type INT =
+            UNARY_OP: -
+              VARIABLE: a
+        STATEMENT_LIST
+          VAR_DECL: not_a of type INT =
+            UNARY_OP: !
+              VARIABLE: a
+        STATEMENT_LIST
+          VAR_DECL: addr_a of type INT =
+            CAST to INT
+              UNARY_OP: &
+                VARIABLE: a
+        STATEMENT_LIST
+          VAR_DECL: deref_ptr of type INT =
+            UNARY_OP: *
+              VARIABLE: ptr
+        STATEMENT_LIST
+          VAR_DECL: eq of type INT =
+            BINARY_OP: ==
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: ne of type INT =
+            BINARY_OP: !=
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: lt of type INT =
+            BINARY_OP: <
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: le of type INT =
+            BINARY_OP: <=
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: gt of type INT =
+            BINARY_OP: >
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: ge of type INT =
+            BINARY_OP: >=
+              VARIABLE: a
+              VARIABLE: b
+        STATEMENT_LIST
+          VAR_DECL: logical_and of type INT =
+            BINARY_OP: &&
+              BINARY_OP: >
+                VARIABLE: a
+                INTEGER: 0
+              BINARY_OP: <
+                VARIABLE: b
+                INTEGER: 10
+        STATEMENT_LIST
+          VAR_DECL: logical_or of type INT =
+            BINARY_OP: ||
+              BINARY_OP: <
+                VARIABLE: a
+                INTEGER: 0
+              BINARY_OP: >
+                VARIABLE: b
+                INTEGER: 10
+        IF
+          BINARY_OP: >
+            VARIABLE: a
+            VARIABLE: b
+          STATEMENT_LIST
+            FUNC_CALL: print_message
+              ARG_LIST
+                STRING_LITERAL: "a is greater than b"
+        ELSE
+          IF
+            BINARY_OP: <
+              VARIABLE: a
+              VARIABLE: b
+            STATEMENT_LIST
+              FUNC_CALL: print_message
+                ARG_LIST
+                  STRING_LITERAL: "a is less than b"
+          ELSE
+            STATEMENT_LIST
+              FUNC_CALL: print_message
+                ARG_LIST
+                  STRING_LITERAL: "a is equal to b"
+        STATEMENT_LIST
+          VAR_DECL: i of type INT =
+            INTEGER: 0
+        WHILE
+          BINARY_OP: <
+            VARIABLE: i
+            INTEGER: 3
+          STATEMENT_LIST
+            FUNC_CALL: printf
+              ARG_LIST
+                STRING_LITERAL: "While loop iteration: %d\n"
+                VARIABLE: i
+            UNARY_OP: ++
+              VARIABLE: i
+        STATEMENT_LIST
+          VAR_DECL: j of type INT =
+            INTEGER: 0
+        DO_WHILE
+          STATEMENT_LIST
+            FUNC_CALL: printf
+              ARG_LIST
+                STRING_LITERAL: "Do-while loop iteration: %d\n"
+                VARIABLE: j
+            UNARY_OP: ++
+              VARIABLE: j
+          BINARY_OP: <
+            VARIABLE: j
+            INTEGER: 2
+        FOR
+          STATEMENT_LIST
+            VAR_DECL: k of type INT =
+              INTEGER: 0
+          BINARY_OP: <
+            VARIABLE: k
+            INTEGER: 2
+          UNARY_OP: ++
+            VARIABLE: k
+          STATEMENT_LIST
+            FUNC_CALL: printf
+              ARG_LIST
+                STRING_LITERAL: "For loop iteration: %d\n"
+                VARIABLE: k
+        STATEMENT_LIST
+          VAR_DECL: sum_ab of type INT =
+            FUNC_CALL: add
+              ARG_LIST
+                VARIABLE: a
+                VARIABLE: b
+        FUNC_CALL: printf
+          ARG_LIST
+            STRING_LITERAL: "Sum of a and b: %d\n"
+            VARIABLE: sum_ab
+        STATEMENT_LIST
+          VAR_DECL: first_element of type INT =
+            ARRAY_ACCESS
+              VARIABLE: arr
+              INTEGER: 0
+        ASSIGN
+          ARRAY_ACCESS
+            VARIABLE: arr
+            INTEGER: 1
+          INTEGER: 25
+        FUNC_CALL: printf
+          ARG_LIST
+            STRING_LITERAL: "Array element at index 1: %d\n"
+            ARRAY_ACCESS
+              VARIABLE: arr
+              INTEGER: 1
+        ASSIGN
+          MEMBER_ACCESS: x
+            VARIABLE: p1
+          INTEGER: 100
+        ASSIGN
+          MEMBER_ACCESS: y
+            VARIABLE: p1
+          INTEGER: 200
+        FUNC_CALL: printf
+          ARG_LIST
+            STRING_LITERAL: "Point p1: (%d, %d)\n"
+            MEMBER_ACCESS: x
+              VARIABLE: p1
+            MEMBER_ACCESS: y
+              VARIABLE: p1
+        ASSIGN
+          MEMBER_ACCESS: i
+            VARIABLE: data
+          INTEGER: 123
+        FUNC_CALL: printf
+          ARG_LIST
+            STRING_LITERAL: "Union data.i: %d\n"
+            MEMBER_ACCESS: i
+              VARIABLE: data
+        ASSIGN
+          MEMBER_ACCESS: f
+            VARIABLE: data
+          FLOAT: 45.669998
+        FUNC_CALL: printf
+          ARG_LIST
+            STRING_LITERAL: "Union data.f: %f\n"
+            MEMBER_ACCESS: f
+              VARIABLE: data
+        STATEMENT_LIST
+          VAR_DECL: max of type INT =
+            TERNARY_OP
+              BINARY_OP: >
+                VARIABLE: a
+                VARIABLE: b
+              VARIABLE: a
+              VARIABLE: b
+        FUNC_CALL: printf
+          ARG_LIST
+            STRING_LITERAL: "Max of a and b: %d\n"
+            VARIABLE: max
+        STATEMENT_LIST
+          VAR_DECL: float_a of type FLOAT =
+            CAST to FLOAT
+              VARIABLE: a
+        FUNC_CALL: printf
+          ARG_LIST
+            STRING_LITERAL: "Float a: %f\n"
+            VARIABLE: float_a
+        FUNC_CALL: printf
+          ARG_LIST
+            STRING_LITERAL: "End of main function.\n"
+        RETURN
+          INTEGER: 0
+    FUNCTION_DEFINITION: add, returns INT
+      STATEMENT_LIST
+        RETURN
+          BINARY_OP: +
+            VARIABLE: a
+            VARIABLE: b
+    FUNCTION_DEFINITION: print_message, returns VOID
+      STATEMENT_LIST
+        FUNC_CALL: printf
+          ARG_LIST
+            STRING_LITERAL: "%s\n"
+            VARIABLE: msg

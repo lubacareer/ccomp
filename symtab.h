@@ -9,36 +9,33 @@ typedef enum {
     SYMBOL_FUNCTION,
     SYMBOL_TYPEDEF,
     SYMBOL_ENUM_MEMBER,
+    SYMBOL_ENUMERATOR,
+    SYMBOL_LABEL, // New: For labels in goto statements
+    SYMBOL_STRUCT,
+    SYMBOL_UNION,
+    SYMBOL_ENUM
 } SymbolType;
-
-// The data type of a variable symbol
-typedef enum {
-    DATA_TYPE_VOID,
-    DATA_TYPE_INT,
-    DATA_TYPE_CHAR,
-    DATA_TYPE_FLOAT,
-    DATA_TYPE_DOUBLE,
-    DATA_TYPE_POINTER,
-    DATA_TYPE_ARRAY,
-    DATA_TYPE_STRUCT,
-    DATA_TYPE_UNION,
-    DATA_TYPE_BOOL,
-} DataType;
 
 // Forward declaration
 struct ASTNode;
+struct Type; // Forward declaration for Type
 
 // A symbol in the symbol table
 typedef struct Symbol {
     char *name;
     SymbolType type;
-    DataType data_type;
+    struct Type *data_type; // Use Type* for more detailed type information
     int scope_level;
     struct Symbol *next; // For hash table chaining
 
     // For functions
-    DataType return_type;
+    struct Type *return_type; // Use Type* for more detailed return type
     struct ASTNode *params;
+
+    // For variables
+    int offset;
+    // For enumerators
+    int enum_value;
 } Symbol;
 
 // A single scope, implemented as a hash table
@@ -46,6 +43,7 @@ typedef struct Scope {
     int level;
     Symbol **table;
     struct Scope *parent;
+    int current_offset; // For local variable stack offsets
 } Scope;
 
 // The symbol table, which is a stack of scopes
@@ -60,11 +58,13 @@ void symtab_destroy(SymbolTable *st);
 void symtab_enter_scope(SymbolTable *st);
 void symtab_exit_scope(SymbolTable *st);
 
-int symtab_insert(SymbolTable *st, const char *name, SymbolType type, DataType data_type, DataType return_type, struct ASTNode *params);
+int symtab_insert(SymbolTable *st, const char *name, SymbolType type, struct Type *data_type, struct Type *return_type, struct ASTNode *params, int enum_val);
 Symbol* symtab_lookup(SymbolTable *st, const char *name);
 Symbol* symtab_lookup_current_scope(SymbolTable *st, const char *name);
 
-void add_typedef_name(SymbolTable *st, const char *name);
+void add_typedef_name(SymbolTable *st, const char *name, struct Type *actual_type);
+struct Type* get_typedef_type(SymbolTable *st, const char *name);
 int is_typedef_name(SymbolTable *st, const char *name);
+int is_type_owned_by_symtab(SymbolTable *st, struct Type *type); // New: Declare helper function
 
 #endif // SYMTAB_H

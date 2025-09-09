@@ -3,8 +3,8 @@ CFLAGS = -g -Wall
 
 all: ccomp
 
-ccomp: main.o lexer.o parser.o ast.o symtab.o codegen.o
-	$(CC) $(CFLAGS) -o ccomp main.o lexer.o parser.o ast.o symtab.o codegen.o
+ccomp: main.o lexer.o parser.o ast.o symtab.o codegen.o tac.o
+	$(CC) $(CFLAGS) -o ccomp main.o lexer.o parser.o ast.o symtab.o codegen.o tac.o
 
 main.o: main.c parser.h ast.h
 	$(CC) $(CFLAGS) -c main.c
@@ -23,6 +23,9 @@ symtab.o: symtab.c symtab.h
 
 codegen.o: codegen.c codegen.h ast.h symtab.h
 	$(CC) $(CFLAGS) -c codegen.c
+
+tac.o: tac.c tac.h ast.h symtab.h parser.h
+	$(CC) $(CFLAGS) -c tac.c
 
 lexer.c: lexer.l
 	flex -o lexer.c lexer.l
@@ -58,5 +61,5 @@ test: ccomp
 	gcc -o tests/output/test10.out a.s
 
 clean:
-	rm -f ccomp *.o lexer.c parser.c parser.h tests/*.i a.s *.out tests/output/*.out
+	rm -f ccomp *.o lexer.c parser.c parser.h tests/*.i a.s *.out tests/output/*.out *.tac
 	rm -rf fail_tests tests/output

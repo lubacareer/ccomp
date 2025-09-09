@@ -1,7 +1,3 @@
-int a = 1;
-int b = 2;
-int c;
-
 int main() {
-    return 0;
+    return 10 - 5 + 3;
 }

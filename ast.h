@@ -1,6 +1,9 @@
 #ifndef AST_H
 #define AST_H
 
+#include <stdio.h> // Required for FILE type
+#include <stdbool.h> // Include for bool type
+
 typedef enum {
     TYPE_INT,
     TYPE_POINTER,
@@ -74,7 +77,8 @@ typedef enum {
     NODE_TYPE_PROGRAM,
     NODE_TYPE_CAST,
     NODE_TYPE_INITIALIZER_LIST,
-    NODE_TYPE_TYPE_DECL
+    NODE_TYPE_TYPE_DECL,
+    NODE_TYPE_DECL_LIST // Added for declaration lists within structs/unions
 } NodeType;
 
 typedef struct ASTNode {
@@ -157,6 +161,7 @@ typedef struct ASTNode {
         struct {
             char *name;
             struct ASTNode *enumerators;
+            struct Scope *scope; // Add scope for enum
         } enum_specifier;
         struct {
             char *name;
@@ -175,14 +180,19 @@ typedef struct ASTNode {
             struct ASTNode *statement;
         } return_statement;
         struct {
+            struct ASTNode *statements;
+        } program;
+        struct {
             struct ASTNode **statements;
             int count;
+            struct Scope *scope;
         } statement_list;
         struct {
-            char *name;
-            Type *return_type;
-            struct ASTNode *params;
+            struct Type *return_type; // Changed from ASTNode* to Type*
+            struct ASTNode *declarator;
+            struct ASTNode *declarations;
             struct ASTNode *body;
+            struct Scope *scope;
         } function_definition;
         struct {
             char *name;
@@ -201,15 +211,13 @@ typedef struct ASTNode {
             struct ASTNode *index;
         } array_access;
         struct {
+            int op; // T_DOT or T_ARROW
             struct ASTNode *struct_or_union;
             char *member_name;
         } member_access;
         struct {
             Type *type;
         } sizeof_op;
-        struct {
-            struct ASTNode *statements;
-        } program;
         struct {
             Type *to_type;
             struct ASTNode *expr;
@@ -269,13 +277,27 @@ void add_param_to_list(ASTNode *list, ASTNode *param);
 ASTNode *create_arg_list_node();
 void add_arg_to_list(ASTNode *list, ASTNode *arg);
 ASTNode *create_array_access_node(ASTNode *array, ASTNode *index);
-ASTNode *create_member_access_node(ASTNode *struct_or_union, char *member_name);
+ASTNode *create_member_access_node(int op, ASTNode *struct_or_union, char *member_name);
 ASTNode *create_program_node();
 void add_toplevel_statement_to_program(ASTNode *program, ASTNode *statement);
 ASTNode *create_cast_node(Type *to_type, ASTNode *expr);
 ASTNode *create_initializer_list_node();
 void add_initializer_to_list(ASTNode *list, ASTNode *initializer);
-void print_ast(ASTNode *node, int indent);
+void free_type(Type *type); // Declare free_type function
+ASTNode *fold_constants(ASTNode *node);
+ASTNode *eliminate_dead_code(ASTNode *node);
+void print_ast(ASTNode *node, int indent, FILE *output_file);
+void print_type(Type *type, FILE *output_file);
 void generate_dot(ASTNode *node);
+int is_arithmetic_type(Type *type);
+int is_scalar_type(Type *type);
+int is_global_singleton_type(Type *type); // Declare helper function
+Type *clone_type(Type *type);             // Deep-ish copy of Type for ownership isolation
+
+// New struct to return Type* along with ownership information
+typedef struct {
+    struct Type *type;
+    bool is_newly_allocated; // True if the type was newly allocated and needs freeing
+} TypeAndOwnership;
 
 #endif // AST_H

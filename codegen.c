@@ -9,7 +9,8 @@ extern SymbolTable *symbol_table;
 static FILE *output_file;
 
 static void generate_data_section(ASTNode *node);
-static void generate_text_section(ASTNode *node);
+static void generate_text_section(ASTNode *node, Scope *scope);
+static void generate_expression(ASTNode *node, Scope *scope);
 
 void generate_code(ASTNode *root, const char *output_filename) {
     output_file = fopen(output_filename, "w");
@@ -22,8 +23,7 @@ void generate_code(ASTNode *root, const char *output_filename) {
     generate_data_section(root);
 
     fprintf(output_file, ".text\n");
-    fprintf(output_file, ".globl main\n");
-    generate_text_section(root);
+    generate_text_section(root, symbol_table->current_scope);
 
     fclose(output_file);
 }
@@ -33,28 +33,21 @@ static void generate_data_section(ASTNode *node) {
         return;
     }
 
-    switch (node->type) {
-        case NODE_TYPE_PROGRAM:
-            generate_data_section(node->program.statements);
-            break;
-        case NODE_TYPE_STATEMENT_LIST:
-            for (int i = 0; i < node->statement_list.count; i++) {
-                generate_data_section(node->statement_list.statements[i]);
-            }
-            break;
-        case NODE_TYPE_VAR_DECL:
-            // For now, we only handle global variables.
-            // We'll need to add scope checking to distinguish between global and local variables.
-            if (node->var_decl.var_type->base == TYPE_INT) {
-                fprintf(output_file, "%s: .word %d\n", node->var_decl.name, node->var_decl.init_expr ? node->var_decl.init_expr->integer_value : 0);
-            }
-            break;
-        default:
-            break;
+    if (node->type == NODE_TYPE_PROGRAM) {
+        generate_data_section(node->program.statements);
+    } else if (node->type == NODE_TYPE_STATEMENT_LIST) {
+        for (int i = 0; i < node->statement_list.count; i++) {
+            generate_data_section(node->statement_list.statements[i]);
+        }
+    } else if (node->type == NODE_TYPE_VAR_DECL) {
+        // Assuming global scope for now
+        if (node->var_decl.var_type->base == TYPE_INT) {
+            fprintf(output_file, "%s: .long %d\n", node->var_decl.name, node->var_decl.init_expr ? node->var_decl.init_expr->integer_value : 0);
+        }
     }
 }
 
-static int calculate_stack_frame_size(ASTNode *node) {
+static int get_var_decl_size(ASTNode *node) {
     if (!node) {
         return 0;
     }
@@ -62,100 +55,123 @@ static int calculate_stack_frame_size(ASTNode *node) {
     int size = 0;
     if (node->type == NODE_TYPE_STATEMENT_LIST) {
         for (int i = 0; i < node->statement_list.count; i++) {
-            if (node->statement_list.statements[i]->type == NODE_TYPE_VAR_DECL) {
-                size += 4; // Assuming all variables are 4 bytes
-            }
+            size += get_var_decl_size(node->statement_list.statements[i]);
         }
+    } else if (node->type == NODE_TYPE_VAR_DECL) {
+        size += 4; // Assuming all local variables are 4 bytes (int)
     }
-
+    
     return size;
 }
 
-static int get_local_var_offset(const char *name) {
-    int offset = 0;
-    Scope *scope = symbol_table->current_scope;
-    for (int i = 0; i < TABLE_SIZE; i++) {
-        Symbol *s = scope->table[i];
-        while (s) {
-            if (s->type == SYMBOL_VARIABLE) {
-                offset -= 4;
-                if (strcmp(s->name, name) == 0) {
-                    return offset;
-                }
-            }
-            s = s->next;
-        }
-    }
-    return 0; // Should not happen
+static int calculate_stack_frame_size(ASTNode *node) {
+    int size = get_var_decl_size(node);
+    // Align to 16 bytes
+    return (size + 15) & -16;
 }
 
-static void generate_text_section(ASTNode *node) {
+static Symbol *lookup_symbol(Scope *scope, const char *name) {
+    while (scope) {
+        for (int i = 0; i < TABLE_SIZE; i++) {
+            Symbol *s = scope->table[i];
+            while (s) {
+                if (strcmp(s->name, name) == 0) {
+                    return s;
+                }
+                s = s->next;
+            }
+        }
+        scope = scope->parent;
+    }
+    return NULL;
+}
+
+static void generate_text_section(ASTNode *node, Scope *scope) {
     if (!node) {
         return;
     }
 
     switch (node->type) {
         case NODE_TYPE_PROGRAM:
-            generate_text_section(node->program.statements);
+            generate_text_section(node->program.statements, scope);
             break;
         case NODE_TYPE_STATEMENT_LIST:
-            for (int i = 0; i < node->statement_list.count; i++) {
-                generate_text_section(node->statement_list.statements[i]);
+            {
+                Scope *new_scope = node->statement_list.scope ? node->statement_list.scope : scope;
+                for (int i = 0; i < node->statement_list.count; i++) {
+                    generate_text_section(node->statement_list.statements[i], new_scope);
+                }
             }
             break;
         case NODE_TYPE_FUNCTION_DEFINITION: {
+            fprintf(output_file, ".globl %s\n", node->function_definition.declarator->var_decl.name);
+            fprintf(output_file, "%s:\n", node->function_definition.declarator->var_decl.name);
+            
+            // Prologue
+            fprintf(output_file, "  pushq %%rbp\n");
+            fprintf(output_file, "  movq %%rsp, %%rbp\n");
             int frame_size = calculate_stack_frame_size(node->function_definition.body);
-            fprintf(output_file, "%s:\n", node->function_definition.name);
-            // Standard function prologue
-            fprintf(output_file, "  addi $sp, $sp, -%d\n", frame_size + 4);
-            fprintf(output_file, "  sw $fp, %d($sp)\n", frame_size);
-            fprintf(output_file, "  move $fp, $sp\n");
+            if (frame_size > 0) {
+                fprintf(output_file, "  subq $%d, %%rsp\n", frame_size);
+            }
 
-            generate_text_section(node->function_definition.body);
+            generate_text_section(node->function_definition.body, node->function_definition.scope);
 
-            // Standard function epilogue
-            fprintf(output_file, "  move $sp, $fp\n");
-            fprintf(output_file, "  lw $fp, %d($sp)\n", frame_size);
-            fprintf(output_file, "  addi $sp, $sp, %d\n", frame_size + 4);
-            fprintf(output_file, "  jr $ra\n");
+            // Epilogue
+            fprintf(output_file, "  movq %%rbp, %%rsp\n");
+            fprintf(output_file, "  popq %%rbp\n");
+            fprintf(output_file, "  ret\n");
             break;
         }
         case NODE_TYPE_RETURN:
             if (node->return_statement.statement) {
-                generate_text_section(node->return_statement.statement);
-                fprintf(output_file, "  move $v0, $t0\n");
-            }
-            break;
-        case NODE_TYPE_BINARY_OP:
-            generate_text_section(node->binary_op.left);
-            fprintf(output_file, "  sw $t0, 0($sp)\n");
-            fprintf(output_file, "  addiu $sp, $sp, -4\n");
-            generate_text_section(node->binary_op.right);
-            fprintf(output_file, "  lw $t1, 4($sp)\n");
-            fprintf(output_file, "  addiu $sp, $sp, 4\n");
-            switch (node->binary_op.op) {
-                case T_ADD:
-                    fprintf(output_file, "  add $t0, $t1, $t0\n");
-                    break;
-                case T_SUB:
-                    fprintf(output_file, "  sub $t0, $t1, $t0\n");
-                    break;
+                generate_expression(node->return_statement.statement, scope);
             }
             break;
         case NODE_TYPE_VAR_DECL:
             if (node->var_decl.init_expr) {
-                generate_text_section(node->var_decl.init_expr);
-                int offset = get_local_var_offset(node->var_decl.name);
-                fprintf(output_file, "  sw $t0, %d($fp)\n", offset);
+                generate_expression(node->var_decl.init_expr, scope);
+                Symbol *s = lookup_symbol(scope, node->var_decl.name);
+                if (s) {
+                    fprintf(output_file, "  movl %%eax, %d(%%rbp)\n", s->offset);
+                }
+            }
+            break;
+        default:
+            generate_expression(node, scope);
+            break;
+    }
+}
+
+static void generate_expression(ASTNode *node, Scope *scope) {
+    if (!node) {
+        return;
+    }
+
+    switch (node->type) {
+        case NODE_TYPE_BINARY_OP:
+            generate_expression(node->binary_op.right, scope);
+            fprintf(output_file, "  pushq %%rax\n");
+            generate_expression(node->binary_op.left, scope);
+            fprintf(output_file, "  popq %%rcx\n");
+            switch (node->binary_op.op) {
+                case T_ADD:
+                    fprintf(output_file, "  addl %%ecx, %%eax\n");
+                    break;
+                case T_SUB:
+                    fprintf(output_file, "  subl %%ecx, %%eax\n");
+                    break;
             }
             break;
         case NODE_TYPE_VARIABLE: {
-            int offset = get_local_var_offset(node->variable.name);
-            fprintf(output_file, "  lw $t0, %d($fp)\n", offset);
+            Symbol *s = lookup_symbol(scope, node->variable.name);
+            if (s) {
+                fprintf(output_file, "  movl %d(%%rbp), %%eax\n", s->offset);
+            }
             break;
         }
         case NODE_TYPE_INTEGER:
-            fprintf(output_file, "  li $t0, %d\n", node->integer_value);
+            fprintf(output_file, "  movl $%d, %%eax\n", node->integer_value);
             break;
         default:
             break;

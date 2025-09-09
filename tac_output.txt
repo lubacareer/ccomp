@@ -1,0 +1,6 @@
+LABEL main:
+current_color = 1
+PARAM ""Current color: %d\n""
+PARAM current_color
+t0 = CALL printf, 2
+RETURN 0

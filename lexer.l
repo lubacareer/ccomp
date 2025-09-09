@@ -81,7 +81,7 @@ int yylineno;
 "%="        { return T_MOD_ASSIGN; }
 "->"        { return T_ARROW; }
 ":"         { return T_COLON; }
-[0-9]+\.[0-9]+ { yylval.string_value = strdup(yytext); return T_FLOAT_LITERAL; }
+[0-9]+\.[0-9]+([fF])? { yylval.string_value = strdup(yytext); return T_FLOAT_LITERAL; }
 \"[^"]*\"  { yylval.string_value = strdup(yytext); return T_STRING_LITERAL; }
 '[^']'      { yylval.string_value = strdup(yytext); return T_CHAR_LITERAL; }
 [0-9]+      { yylval.integer_value = atoi(yytext); return T_INTEGER; }
@@ -106,6 +106,7 @@ int yylineno;
     return T_IDENTIFIER;
 }
 .           { /* ignore other characters */ }
+
 
 %%
 
